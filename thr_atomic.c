@@ -134,7 +134,7 @@ int main(int argc, char ** argv) {
         args->threadNum = threadNum;
         args->numThreads = numThreads;
         args->upperBound = upperBound;
-        int err = pthread_create(&threadId, NULL, &calculateRoot, args);
+        const int err = pthread_create(&threadId, NULL, &calculateRoot, args);
         if (err) {
             printf("Failed to create thread %d", threadNum);
             exit(1);
