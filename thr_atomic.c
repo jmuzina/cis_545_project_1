@@ -10,8 +10,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include <unistd.h>
-#include <math.h>
+#include <math.h> // Please make sure you use -lm option (GCC) to link the math library
 #include <semaphore.h> 
 #include <assert.h>
 // ----------------------
