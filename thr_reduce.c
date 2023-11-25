@@ -136,10 +136,12 @@ int main(int argc, char ** argv) {
     
     // Loop over `partialSums`, changing it in-place by adding two elements and reducing its size in half each time.
     while (numThreads > 1) {
-        // Loop over the remainder of `partialSums`. We start by picking a thread at the start of the array and one at the middle, and work our way to the end.
+        // Loop over the remainder of `partialSums`. 
+        // We start by picking a thread at the start of the array and one at the middle, and work our way to the end.
         for (int threadNum = 0; threadNum < numThreads / 2; ++threadNum) {
             const int partnerThreadNum = (numThreads / 2) + threadNum;
-            // Only wait for the threads to finish if this is the first reduction. After the first reduction, all threads have completed. 
+            // Only wait for the threads to finish if this is the first reduction. 
+            // After the first reduction, all threads have completed. 
             if (!numReductions) {
                 pthread_join(threadIds[threadNum], NULL);
                 pthread_join(threadIds[partnerThreadNum], NULL);
