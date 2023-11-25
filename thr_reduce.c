@@ -33,8 +33,8 @@ struct RootCalculationThreadArgs {
 
 /** Prints generic usage hint */
 void printUsageHint() {
-    printf("Correct usage:\t./thr_atomic.c <number of threads> <upper bound> where <number of threads> and <upper bound> are integer powers of 2, and <number of threads> <= <upper bound>.\n");
-    printf("Ex:\t./thr_atomic.c 8 64\n");
+    printf("Correct usage:\t./thr_reduce.c <number of threads> <upper bound> where <number of threads> and <upper bound> are integer powers of 2, and <number of threads> <= <upper bound>.\n");
+    printf("Ex:\t./thr_reduce.c 8 64\n");
 }
 
 /** 
