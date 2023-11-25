@@ -77,10 +77,9 @@ void * calculateRoot(void *_args) {
     
     // Signal completion calculating and printing partial sum
     sem_post(&worker);
-
-    // Wait until no other worker threads are in their critical section
+    // Wait until no other worker threads are in their critical section and all threads have been created
     sem_wait(&dispatcher);
-    // Enter the critical section; atomically update the total.
+    // Enter the critical section; atomically update the total
     total += threadTotal;
     // Inform the main thread that this worker has left its critical section
     sem_post(&dispatcher);
@@ -144,7 +143,7 @@ int main(int argc, char ** argv) {
         }
     }
 
-    /** Signal worker threads to begin adding their partial sums to the shared total */
+    /** Signal all worker threads created; threads begin adding their partial sums to the shared total */
     for (int threadNum = 0; threadNum < numThreads; ++threadNum) {
         sem_post(&dispatcher);
     }
