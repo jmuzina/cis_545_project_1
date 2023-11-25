@@ -2,7 +2,7 @@
     Julie Muzina
     2713300
     jumuzina
-    CIS 545 - Project 1 - thr_atomic.c
+    CIS 545 - Project 1 - thr_reduce.c
 */
 
 // -----Dependencies-----
@@ -11,7 +11,6 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <math.h> // Please make sure you use -lm option (GCC) to link the math library
-#include <semaphore.h> 
 #include <assert.h>
 // ----------------------
 
@@ -20,12 +19,7 @@ const int NUM_ARGS = 3;
 /** Number that all integer arguments should be a power of*/
 const int ARGS_POWER_OF = 2;
 /** Shared total of the quadruple root calculation. */
-double total = 0;
-// Semaphores for mutual exclusion
-/** Worker semaphore; main thread waits for this semaphore to be 1 to print final result */
-sem_t worker;
-/** Dispatcher semaphore; worker threads wait for this semaphore to be 1 to enter their critical section */
-sem_t dispatcher;
+double * partialSums;
 
 /** Arguments provided to threads in the `calculateRoot` function */
 struct RootCalculationThreadArgs {
@@ -72,16 +66,9 @@ void * calculateRoot(void *_args) {
     for (int i = lowerLoopBound; i <= upperLoopBound; ++i) {
         threadTotal += pow(i, 1.0/4);
     }
-
-    printf("Thread %d finished calculating %d quadruple roots from %d to %d with a sum of %f.\n", args->threadNum, upperLoopBound - lowerLoopBound + 1, lowerLoopBound, upperLoopBound, threadTotal);
     
-    // Wait until no other worker threads are in their critical section
-    sem_wait(&dispatcher);
-    // Enter the critical section; atomically update the total.
-    total += threadTotal;
-    // Inform the main thread that this worker has left its critical section
-    sem_post(&worker);
-    // End critical section
+    // store our partial total in the partialSums arr.
+    partialSums[args->threadNum] = threadTotal;
 
     // Thread cleanup
     free(args);
@@ -97,7 +84,7 @@ int main(int argc, char ** argv) {
         exit(1);
     }
 
-    const int numThreads = atoi(argv[1]);
+    int numThreads = atoi(argv[1]);
     const int upperBound = atoi(argv[2]);
 
     if (numThreads <= 0) {
@@ -123,14 +110,14 @@ int main(int argc, char ** argv) {
         printUsageHint();
         exit(1);
     }
-    
-    // Prepare semaphores to ensure mutex
-    sem_init(&dispatcher, 0, 1);
-    sem_init(&worker, 0, 1);
 
+    partialSums = malloc(numThreads * sizeof(double));
+
+    pthread_t * threadIds = malloc(numThreads * sizeof(pthread_t));
+    
     for (int threadNum = 0; threadNum < numThreads; ++threadNum) {
         pthread_t threadId;
-        struct RootCalculationThreadArgs* args = malloc(sizeof (struct RootCalculationThreadArgs));
+        struct RootCalculationThreadArgs* args = malloc(sizeof(struct RootCalculationThreadArgs));
         args->threadNum = threadNum;
         args->numThreads = numThreads;
         args->upperBound = upperBound;
@@ -138,23 +125,34 @@ int main(int argc, char ** argv) {
         if (err) {
             printf("Failed to create thread %d", threadNum);
             exit(1);
+        } else {
+            threadIds[threadNum] = threadId;
         }
     }
 
-    /** Signal worker threads to begin adding their partial sums to the shared total */
-    for (int threadNum = 0; threadNum <= numThreads; ++threadNum) {
-        sem_post(&dispatcher);
+    int numReductions = 0;
+    while (numThreads > 1) {
+        for (int threadNum = 0; threadNum < numThreads / 2; ++threadNum) {
+            const int partnerThreadNum = (numThreads / 2) + threadNum;
+            if (!numReductions) {
+                pthread_join(threadIds[threadNum], NULL);
+                pthread_join(threadIds[partnerThreadNum], NULL);
+            }
+            partialSums[threadNum] = partialSums[threadNum] + partialSums[partnerThreadNum];
+        }
+        ++numReductions;
+        numThreads /= 2;
+        if (numThreads > 0) {
+            partialSums = realloc(partialSums, numThreads * sizeof(double));
+            threadIds = realloc(threadIds, numThreads * sizeof(pthread_t));
+        }
     }
-
-    /*** Wait for all worker threads to be finished adding their partial sums to the shared total */
-    for (int threadNum = 0; threadNum <= numThreads; ++threadNum) {
-        sem_wait(&worker);
-    }
-
-    // Semaphore cleanup
-    sem_destroy(&dispatcher);
-    sem_destroy(&worker);
+    
+    const double total = partialSums[0];
 
     // All worker threads have added their partial sums to `total`. Print the result!
     printf("The sum of fourth roots from %d to %d is %f.\n", 1, upperBound, total);
+
+    free(partialSums);
+    free(threadIds);
 }
