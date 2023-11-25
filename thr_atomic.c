@@ -75,15 +75,15 @@ void * calculateRoot(void *_args) {
 
     printf("Thread %d finished calculating %d quadruple roots from %d to %d with a sum of %f.\n", args->threadNum, upperLoopBound - lowerLoopBound + 1, lowerLoopBound, upperLoopBound, threadTotal);
     
-    // Signal completion calculating and printing partial sum
-    sem_post(&worker);
     // Wait until no other worker threads are in their critical section and all threads have been created
     sem_wait(&dispatcher);
     // Enter the critical section; atomically update the total
     total += threadTotal;
-    // Inform the main thread that this worker has left its critical section
-    sem_post(&dispatcher);
     // End critical section
+    // Allow another worker thread to enter their critical section
+    sem_post(&dispatcher);
+    // Inform the main thread that this worker has left its critical section
+    sem_post(&worker);
 
     // Thread cleanup
     free(args);
