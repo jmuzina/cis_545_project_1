@@ -113,6 +113,7 @@ int main(int argc, char ** argv) {
 
     partialSums = malloc(numThreads * sizeof(double));
 
+    /** Array of thread identifiers */
     pthread_t * threadIds = malloc(numThreads * sizeof(pthread_t));
     
     for (int threadNum = 0; threadNum < numThreads; ++threadNum) {
@@ -130,24 +131,32 @@ int main(int argc, char ** argv) {
         }
     }
 
+    /** The number of times the partial sums array has been reduced in half */
     int numReductions = 0;
+    
+    // Loop over `partialSums`, changing it in-place by adding two elements and reducing its size in half each time.
     while (numThreads > 1) {
+        // Loop over the remainder of `partialSums`. We start by picking a thread at the start of the array and one at the middle, and work our way to the end.
         for (int threadNum = 0; threadNum < numThreads / 2; ++threadNum) {
             const int partnerThreadNum = (numThreads / 2) + threadNum;
+            // Only wait for the threads to finish if this is the first reduction. After the first reduction, all threads have completed. 
             if (!numReductions) {
                 pthread_join(threadIds[threadNum], NULL);
                 pthread_join(threadIds[partnerThreadNum], NULL);
             }
+            // Store the sum of these two elements in `partialSums`, overwriting the previous value.
             partialSums[threadNum] = partialSums[threadNum] + partialSums[partnerThreadNum];
         }
         ++numReductions;
         numThreads /= 2;
+        // Shrink all thread-related heap data accordingly
         if (numThreads > 0) {
             partialSums = realloc(partialSums, numThreads * sizeof(double));
             threadIds = realloc(threadIds, numThreads * sizeof(pthread_t));
         }
     }
     
+    // At the end, there is only one element in the array, and it is the total.
     const double total = partialSums[0];
 
     // All worker threads have added their partial sums to `total`. Print the result!
