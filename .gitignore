@@ -1,3 +1,4 @@
 thr_atomic
 thr_reduce
 *.zip
+.vscode/
